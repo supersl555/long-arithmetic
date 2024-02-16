@@ -25,6 +25,17 @@ int main() {
 
     std::cout << "Sum: " << sum3.toString() << std::endl;
 
+    // Тесты вычитания
+    LongNumber number7("321.12", 2);
+    LongNumber number8("123.13", 2);
 
+    LongNumber difference = number7 - number8;
+
+    std::cout << "Diff: " << difference.toString() << std::endl;
+    
+    // Тесты сравнений
+    bool islarger = number7 > number8;
+
+    std::cout << "Larger: " << islarger << std::endl;
     return 0;
 }

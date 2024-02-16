@@ -16,7 +16,6 @@ LongNumber::LongNumber(double number, int precision) : precision(precision) {
     digits = ss.str();
 }
 
-// Операция сложения
 std::pair<std::string, std::string> splitNumber(const std::string& number) {
     std::istringstream iss(number);
     std::string integerPart;
@@ -29,6 +28,69 @@ std::pair<std::string, std::string> splitNumber(const std::string& number) {
     }
 
     return std::make_pair(integerPart, fractionalPart);
+}
+
+// Операции сравнения
+// Операция сравнения >
+bool LongNumber::operator>(const LongNumber& other) const {
+    std::string& digitsRef = const_cast<std::string&>(digits);
+    if (digitsRef == "-0"){
+        digitsRef = "0";
+    }
+
+    std::string& otherdigitsRef = const_cast<std::string&>(other.digits);
+    if (otherdigitsRef == "-0"){
+        otherdigitsRef = "0";
+    }
+
+    bool isNegative1 = (digits[0] == '-');
+    bool isNegative2 = (other.digits[0] == '-');
+
+
+    if (isNegative1 != isNegative2){
+        return isNegative2;
+    }
+
+    if (isNegative1) {
+        LongNumber negated1 = *this;
+        negated1.digits = digits.substr(1);
+        LongNumber negated2 = other;
+        negated2.digits = other.digits.substr(1);
+        bool res = negated2 > negated1;
+        return res;
+    }
+
+    std::pair<std::string, std::string> num1Parts = splitNumber(digits);
+    std::pair<std::string, std::string> num2Parts = splitNumber(other.digits);
+
+    int size1 = num1Parts.first.size(), size2 = num2Parts.first.size();
+    if (size1 > size2) {
+        return true;
+    } else if (size1 < size2) {
+        return false;
+    } else {
+        for (size_t i = 0; i < size1; ++i) {
+            if (num1Parts.first[i] > num2Parts.first[i]) {
+                return true;
+            } else if (num1Parts.first[i] < num2Parts.first[i]) {
+                return false;
+            }
+        }
+    }
+
+    size1 = num1Parts.second.size(), size2 = num2Parts.second.size();
+    int size = std::min(size1, size2);
+
+    for (size_t i = 0; i < size; ++i) {
+        if (num1Parts.second[i] > num2Parts.second[i]) {
+            return true;
+        } else if (num1Parts.second[i] < num2Parts.second[i]) {
+            return false;
+        }
+    }
+
+    return size1 > size2;
+
 }
 
 std::vector<int> convertToDigitsVector(const std::string& numberString) {
@@ -92,6 +154,7 @@ std::vector<int> addDigits(const std::vector<int>& digits1, const std::vector<in
     return sumDigits;
 }
 
+// Операция сложения
 LongNumber LongNumber::operator+(const LongNumber& other) const {
     // Вычисляем точность для результата как максимальную из точностей операндов
     int resultPrecision = std::max(precision, other.precision);
@@ -162,6 +225,184 @@ LongNumber LongNumber::operator+(const LongNumber& other) const {
 
     // Создаем новый объект LongNumber с полученной суммой и точностью
     return LongNumber(sum, resultPrecision);
+}
+
+// Операция вычитания
+std::vector<int> subtractDigits(const std::vector<int>& digits1, const std::vector<int>& digits2) {
+    std::vector<int> diffDigits;
+    int borrow = 0;
+    
+    for (int i = digits1.size() - 1; i >= 0; --i) {
+        int diff = digits1[i] - digits2[i] - borrow;
+        if (diff < 0) {
+            diff += 10;
+            borrow = 1;
+        } else {
+            borrow = 0;
+        }
+        diffDigits.insert(diffDigits.begin(), diff);
+    }
+
+    // Удаляем ведущие нули
+    while (!diffDigits.empty() && diffDigits.front() == 0) {
+        diffDigits.erase(diffDigits.begin());
+    }
+
+    return diffDigits;
+}
+
+LongNumber LongNumber::operator-(const LongNumber& other) const {
+    // Вычисляем точность для результата как максимальную из точностей операндов
+    int resultPrecision = std::max(precision, other.precision);
+    // Разбиваем числа на целую и дробную части
+    std::pair<std::string, std::string> num1Parts = splitNumber(digits);
+    std::pair<std::string, std::string> num2Parts = splitNumber(other.digits);
+
+    // Если числа имеют разный знак, выполняем операцию сложения
+    if (digits[0] == '-' && other.digits[0] != '-'){
+        std::string temp_str = digits.substr(1);
+        LongNumber sum(temp_str, precision);
+        LongNumber result = sum + other;
+        result.digits = "-" + result.digits;
+        return result;
+    }
+
+    if (digits[0] != '-' && other.digits[0] == '-'){
+        std::string temp_str = other.digits.substr(1);
+        LongNumber sum(temp_str, other.precision);
+        LongNumber result = sum + (*this);
+        return result;
+    }
+
+    // Переводим строки в векторы цифр
+    std::vector<int> digits1 = convertToDigitsVector(num1Parts.first);
+    std::vector<int> digits2 = convertToDigitsVector(num2Parts.first);
+
+    // Если числа одного знака, определяем большее по модулю
+    bool minus = false;
+
+    bool num1IsBigger = false;
+    if (digits[0] == '-'){
+        std::string str1 = digits.substr(1);
+        std::string str2 = other.digits.substr(1);
+        LongNumber num1(str1, precision);
+        LongNumber num2(str2, other.precision);
+        num1IsBigger = num1 > num2;
+        if (num1IsBigger){
+            minus = true;
+        }
+    } else {
+        num1IsBigger = (*this) > other;
+        if (!num1IsBigger){
+            minus = true;
+        }
+    }
+
+
+    alignVectors_1(digits1, digits2);
+    
+    // Вычитание в зависимости от размера целой части
+    std::vector<int> diffDigits;
+    std::vector<int> diffDigitsFraction;
+
+    if (num1IsBigger) {
+        diffDigits = subtractDigits(digits1, digits2);
+
+        digits1 = convertToDigitsVector(num1Parts.second);
+        digits2 = convertToDigitsVector(num2Parts.second);
+
+        // Добавляем нули в конец векторов, чтобы выровнять их по длине
+        alignVectors_2(digits1, digits2);
+    
+        int borrow = 0;
+    
+        for (int i = digits1.size() - 1; i >= 0; --i) {
+            int diff = digits1[i] - digits2[i] - borrow;
+            if (diff < 0) {
+                diff += 10;
+                borrow = 1;
+            } else {
+                borrow = 0;
+            }
+            diffDigitsFraction.insert(diffDigitsFraction.begin(), diff);
+        }
+
+        if (borrow > 0){
+            std::vector OnesVector(1, 1);
+            alignVectors_1(diffDigits, OnesVector);
+            diffDigits = subtractDigits(diffDigits, OnesVector);
+        }
+
+    } else {
+        diffDigits = subtractDigits(digits2, digits1);
+
+        digits1 = convertToDigitsVector(num1Parts.second);
+        digits2 = convertToDigitsVector(num2Parts.second);
+
+        // Добавляем нули в конец векторов, чтобы выровнять их по длине
+        alignVectors_2(digits1, digits2);
+
+        int borrow = 0;
+    
+        for (int i = digits2.size() - 1; i >= 0; --i) {
+            int diff = digits2[i] - digits1[i] - borrow;
+            if (diff < 0) {
+                diff += 10;
+                borrow = 1;
+            } else {
+                borrow = 0;
+            }
+            diffDigitsFraction.insert(diffDigitsFraction.begin(), diff);
+        }
+
+        if (borrow > 0){
+            std::vector OnesVector(1, 1);
+            alignVectors_1(diffDigits, OnesVector);
+            diffDigits = subtractDigits(diffDigits, OnesVector);
+        }
+
+    }
+
+    // Преобразуем результаты в строки
+    std::string result_1;
+    for (int digit : diffDigits) {
+        result_1 += std::to_string(digit);
+    }
+
+    if (result_1.size() == 0){
+        result_1 += "0";
+    }
+
+    std::string result_2;
+    for (int digit : diffDigitsFraction){
+        result_2 += std::to_string(digit);
+    }
+
+    // Меняем строку до заданной точности
+    int len = result_2.length();
+    if (resultPrecision > len){
+        result_2 += std::string(resultPrecision - len, '0');
+    } else {
+        result_2 = result_2.substr(0, resultPrecision);
+    }
+
+    std::string diff;
+    if (resultPrecision > 0){
+        if (minus){
+            diff = "-" + result_1 + "." + result_2;
+        } else {
+            diff = result_1 + "." + result_2;
+        }
+    } else {
+        if (minus){
+            diff = "-" + result_1;
+        } else {
+            diff = result_1;
+        }
+    }
+
+    // Создаем новый объект LongNumber с полученной разностью
+    return LongNumber(diff, resultPrecision);
 }
 
 
