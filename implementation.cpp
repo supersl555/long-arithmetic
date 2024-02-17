@@ -2,8 +2,17 @@
 #include <iomanip>
 #include <vector>
 #include <sstream>
+#include <algorithm>
 
-// Конструктор по умолчанию
+std::string LongNumber::toString() const {
+    return digits;
+}
+
+// Установка точности
+void LongNumber::setPrecision(int precision) {
+    this->precision = precision;
+}
+
 LongNumber::LongNumber() : digits("0"), precision(2) {}
 
 // Конструктор с инициализацией
@@ -30,8 +39,6 @@ std::pair<std::string, std::string> splitNumber(const std::string& number) {
     return std::make_pair(integerPart, fractionalPart);
 }
 
-// Операции сравнения
-// Операция сравнения >
 bool LongNumber::operator>(const LongNumber& other) const {
     std::string& digitsRef = const_cast<std::string&>(digits);
     if (digitsRef == "-0"){
@@ -93,6 +100,23 @@ bool LongNumber::operator>(const LongNumber& other) const {
 
 }
 
+bool LongNumber::operator==(const LongNumber& other) const {
+    bool larger = (*this) > other ? true : false;
+    if (larger) {
+        return false;
+    } else {
+        return other > (*this) ? false : true;
+    }
+}
+
+bool LongNumber::operator!=(const LongNumber& other) const {
+    return !((*this) == other);
+}
+
+bool LongNumber::operator<(const LongNumber& other) const {
+    return other > (*this);
+}
+
 std::vector<int> convertToDigitsVector(const std::string& numberString) {
     std::vector<int> digits;
     for (char digitChar : numberString) {
@@ -137,6 +161,7 @@ void alignVectors_2(std::vector<int>& vec1, std::vector<int>& vec2) {
     }
 }
 
+// Операция сложения
 std::vector<int> addDigits(const std::vector<int>& digits1, const std::vector<int>& digits2) {
     std::vector<int> sumDigits;
     int carry = 0;
@@ -154,11 +179,28 @@ std::vector<int> addDigits(const std::vector<int>& digits1, const std::vector<in
     return sumDigits;
 }
 
-// Операция сложения
 LongNumber LongNumber::operator+(const LongNumber& other) const {
+    // Проверяем на отрицательные числа
+    if (digits[0] == '-' && other.digits[0] != '-'){
+        std::string str = digits.substr(1);
+        LongNumber temp(str, precision);
+        return other - temp;
+    }
+
+    if (other.digits[0] == '-' && digits[0] != '-'){
+        std::string str = other.digits.substr(1);
+        LongNumber temp(str, other.precision);
+        return (*this) - temp;
+    }
+
+    bool minus = false;
+    if (other.digits[0] == '-' && digits[0] == '-'){
+        minus = true;
+    }
+
     // Вычисляем точность для результата как максимальную из точностей операндов
     int resultPrecision = std::max(precision, other.precision);
-
+    std::cout << resultPrecision << std::endl;
     // Разбиваем числа на целую и дробную части
     std::pair<std::string, std::string> num1Parts = splitNumber(digits);
     std::pair<std::string, std::string> num2Parts = splitNumber(other.digits);
@@ -218,17 +260,24 @@ LongNumber LongNumber::operator+(const LongNumber& other) const {
 
     std::string sum;
     if (resultPrecision > 0){
-        sum = result_1 + "." + result_2;
+        if (minus){
+            sum = "-" + result_1 + "." + result_2;
+        } else {
+            sum = result_1 + "." + result_2;
+        }
     } else {
-        sum = result_1;
+        if (minus){
+            sum = "-" + result_1;
+        } else {
+            sum = result_1;
+        }
     }
 
     // Создаем новый объект LongNumber с полученной суммой и точностью
     return LongNumber(sum, resultPrecision);
 }
-
 // Операция вычитания
-std::vector<int> subtractDigits(const std::vector<int>& digits1, const std::vector<int>& digits2) {
+std::vector<int> subtractDigits(const std::vector<int>& digits1, const std::vector<int>& digits2, char flag) {
     std::vector<int> diffDigits;
     int borrow = 0;
     
@@ -244,11 +293,22 @@ std::vector<int> subtractDigits(const std::vector<int>& digits1, const std::vect
     }
 
     // Удаляем ведущие нули
-    while (!diffDigits.empty() && diffDigits.front() == 0) {
-        diffDigits.erase(diffDigits.begin());
+    if (flag){
+        while (!diffDigits.empty() && diffDigits.front() == 0) {
+            diffDigits.erase(diffDigits.begin());
+        }
     }
 
     return diffDigits;
+}
+
+bool allZeros(const std::vector<int>& vec) {
+    for (int num : vec) {
+        if (num != 0) {
+            return false;
+        }
+    }
+    return true;
 }
 
 LongNumber LongNumber::operator-(const LongNumber& other) const {
@@ -306,7 +366,7 @@ LongNumber LongNumber::operator-(const LongNumber& other) const {
     std::vector<int> diffDigitsFraction;
 
     if (num1IsBigger) {
-        diffDigits = subtractDigits(digits1, digits2);
+        diffDigits = subtractDigits(digits1, digits2, 1);
 
         digits1 = convertToDigitsVector(num1Parts.second);
         digits2 = convertToDigitsVector(num2Parts.second);
@@ -330,11 +390,11 @@ LongNumber LongNumber::operator-(const LongNumber& other) const {
         if (borrow > 0){
             std::vector OnesVector(1, 1);
             alignVectors_1(diffDigits, OnesVector);
-            diffDigits = subtractDigits(diffDigits, OnesVector);
+            diffDigits = subtractDigits(diffDigits, OnesVector, 1);
         }
 
     } else {
-        diffDigits = subtractDigits(digits2, digits1);
+        diffDigits = subtractDigits(digits2, digits1, 1);
 
         digits1 = convertToDigitsVector(num1Parts.second);
         digits2 = convertToDigitsVector(num2Parts.second);
@@ -358,7 +418,7 @@ LongNumber LongNumber::operator-(const LongNumber& other) const {
         if (borrow > 0){
             std::vector OnesVector(1, 1);
             alignVectors_1(diffDigits, OnesVector);
-            diffDigits = subtractDigits(diffDigits, OnesVector);
+            diffDigits = subtractDigits(diffDigits, OnesVector, 1);
         }
 
     }
@@ -403,55 +463,4 @@ LongNumber LongNumber::operator-(const LongNumber& other) const {
 
     // Создаем новый объект LongNumber с полученной разностью
     return LongNumber(diff, resultPrecision);
-}
-
-
-// // Операция вычитания
-// LongNumber LongNumber::operator-(const LongNumber& other) const {
-   
-// }
-
-// // Операция умножения
-// LongNumber LongNumber::operator*(const LongNumber& other) const {
-   
-// }
-
-// // Операция деления
-// LongNumber LongNumber::operator/(const LongNumber& other) const {
-    
-// }
-
-// // Операция сравнения ==
-// bool LongNumber::operator==(const LongNumber& other) const {
-    
-// }
-
-// // Операция сравнения !=
-// bool LongNumber::operator!=(const LongNumber& other) const {
-    
-// }
-
-// // Операция сравнения <
-// bool LongNumber::operator<(const LongNumber& other) const {
-    
-// }
-
-// // Операция сравнения >
-// bool LongNumber::operator>(const LongNumber& other) const {
-    
-// }
-
-// // Создание из литерала с плавающей точкой
-// LongNumber LongNumber::fromDouble(double number, int precision) {
-//     return LongNumber(number, precision);
-// }
-
-// Преобразование в строку
-std::string LongNumber::toString() const {
-    return digits;
-}
-
-// Установка точности
-void LongNumber::setPrecision(int precision) {
-    this->precision = precision;
 }

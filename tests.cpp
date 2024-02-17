@@ -5,14 +5,14 @@
 int main() {
     // Тесты сложения
     LongNumber number1("9999.94384", 7);
-    LongNumber number2("1.91", 2);
+    LongNumber number2("-1.91", 2);
 
     LongNumber sum = number1 + number2;
 
     std::cout << "Sum: " << sum.toString() << std::endl;
 
-    LongNumber number3("0.1", 0);
-    LongNumber number4("0.8", 0);
+    LongNumber number3("---0.1", 3);
+    LongNumber number4("-0.8", 3);
 
     LongNumber sum2 = number3 + number4;
 
@@ -26,16 +26,27 @@ int main() {
     std::cout << "Sum: " << sum3.toString() << std::endl;
 
     // Тесты вычитания
-    LongNumber number7("321.12", 2);
-    LongNumber number8("123.13", 2);
+    LongNumber number7("123.12", 2);
+    LongNumber number8("123.12", 2);
 
     LongNumber difference = number7 - number8;
 
     std::cout << "Diff: " << difference.toString() << std::endl;
     
     // Тесты сравнений
-    bool islarger = number7 > number8;
+    bool islarger_1 = number7 > number8;
+    bool islarger_2 = number7 < number8;
 
-    std::cout << "Larger: " << islarger << std::endl;
+    std::cout << "Larger: " << islarger_1 << std::endl;
+    std::cout << "Larger: " << islarger_2 << std::endl;
+
+    LongNumber number9("123.1", 3);
+    LongNumber number10("123.1", 3);
+
+    bool equality_1 = number10 == number9;
+    bool equality_2 = number10 != number9;
+
+    std::cout << "Equality: " << equality_1 << std::endl;
+    std::cout << "Equality: " << equality_2 << std::endl;
     return 0;
 }
