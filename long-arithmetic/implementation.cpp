@@ -3,6 +3,7 @@
 #include <vector>
 #include <sstream>
 #include <algorithm>
+#include <regex>
 
 std::string LongNumber::toString() const {
     return digits;
@@ -491,4 +492,218 @@ LongNumber LongNumber::operator-(const LongNumber& other) const {
 
     // Создаем новый объект LongNumber с полученной разностью
     return LongNumber(diff, resultPrecision);
+}
+
+int countCharactersAfterDot(const std::string& str) {
+    size_t dotPosition = str.find('.');
+    if (dotPosition != std::string::npos) {
+        return str.size() - dotPosition - 1;
+    }
+    return 0;
+}
+
+std::string deletePointer(std::string inStr){
+    std::string outStr;
+    for (char c : inStr){
+        if (isdigit(c)){
+            outStr += c;
+        }
+    }
+    return outStr;
+}
+
+std::string findSum(std::string str1, std::string str2) {
+
+    if (str1.length() > str2.length()){
+        swap(str1, str2);
+    }
+    std::string str = "";
+
+    int n1 = str1.length();
+    int n2 = str2.length();
+
+    reverse(str1.begin(), str1.end());
+    reverse(str2.begin(), str2.end());
+ 
+    int carry = 0;
+    for (int i = 0; i < n1; i++) {
+ 
+        int sum
+            = ((str1[i] - '0')
+               + (str2[i] - '0')
+               + carry);
+        str.push_back(sum % 10 + '0');
+
+        carry = sum / 10;
+    }
+
+    for (int i = n1; i < n2; i++) {
+        int sum = ((str2[i] - '0') + carry);
+        str.push_back(sum % 10 + '0');
+        carry = sum / 10;
+    }
+
+    if (carry)
+        str.push_back(carry + '0');
+
+    reverse(str.begin(), str.end());
+ 
+    return str;
+}
+
+std::string findDiff(std::string str1, std::string str2){
+
+    std::string str = "";
+
+    int n1 = str1.length(), n2 = str2.length();
+
+    reverse(str1.begin(), str1.end());
+    reverse(str2.begin(), str2.end());
+ 
+    int carry = 0;
+ 
+    for (int i = 0; i < n2; i++) {
+ 
+        int sub = ((str1[i] - '0') - (str2[i] - '0')- carry);
+
+        if (sub < 0) {
+            sub = sub + 10;
+            carry = 1;
+        }
+        else
+            carry = 0;
+ 
+        str.push_back(sub + '0');
+    }
+
+    for (int i = n2; i < n1; i++) {
+        int sub = ((str1[i] - '0') - carry);
+
+        if (sub < 0) {
+            sub = sub + 10;
+            carry = 1;
+        }
+        else
+            carry = 0;
+ 
+        str.push_back(sub + '0');
+    }
+
+    reverse(str.begin(), str.end());
+
+    return str;
+}
+
+std::string removeLeadingZeros(std::string str){
+    const std::regex pattern("^0+(?!$)");
+
+    str = std::regex_replace(str, pattern, "");
+    return str;
+}
+
+std::string multiply(std::string A, std::string B){
+    if (A.length() > B.length()){
+        swap(A, B);
+    }
+    int n1 = A.length(), n2 = B.length();
+    while (n2 > n1) {
+        A = "0" + A;
+        n1++;
+    }
+
+    if (n1 == 1) {
+        int ans = stoi(A) * stoi(B);
+        return std::to_string(ans);
+    }
+
+    if (n1 % 2 == 1) {
+        n1++;
+        A = "0" + A;
+        B = "0" + B;
+    }
+ 
+    std::string Al, Ar, Bl, Br;
+
+    for (int i = 0; i < n1 / 2; ++i) {
+        Al += A[i];
+        Bl += B[i];
+        Ar += A[n1 / 2 + i];
+        Br += B[n1 / 2 + i];
+    }
+ 
+    std::string p = multiply(Al, Bl);
+ 
+    std::string q = multiply(Ar, Br);
+ 
+    std::string r = findDiff(
+        multiply(findSum(Al, Ar),
+                 findSum(Bl, Br)),
+        findSum(p, q));
+
+    for (int i = 0; i < n1; ++i){
+        p = p + "0";
+    }
+    for (int i = 0; i < n1 / 2; ++i){
+        r = r + "0";
+    }
+    std::string ans = findSum(p, findSum(q, r));
+ 
+    ans = removeLeadingZeros(ans);
+ 
+    return ans;
+}
+
+std::string insertDot(std::string str, int n) {
+    int pos = str.length() - n;
+    if (pos > 0) {
+        str.insert(pos, ".");
+    }
+    return str;
+}
+
+LongNumber LongNumber::operator*(const LongNumber& other) const {
+    // Определяем знак числа
+    bool minus = false;
+    if (digits[0] == '-' || other.digits[0] == '-'){
+        minus = (digits[0] == '-' && other.digits[0] == '-') ? false : true;
+    }
+
+    // Считаем кол-во цифр в дробной части
+    int charactersAfterFirst = countCharactersAfterDot(digits);
+    int charactersAfterSecond = countCharactersAfterDot(other.digits);
+    int charactersAfterMultiply = charactersAfterFirst + charactersAfterSecond;
+
+    // Вычисляем точность для результата как максимальную из точностей операндов
+    int resultPrecision = std::max(precision, other.precision);
+    // Убираем точку из представления числа
+    std::string firstNum = deletePointer(digits);
+    std::string secondNum = deletePointer(other.digits);
+
+    std::string result = multiply(firstNum, secondNum);
+    
+    if (charactersAfterMultiply > 0){
+        result = insertDot(result, charactersAfterMultiply);
+        if (resultPrecision < charactersAfterMultiply){
+            int n = charactersAfterMultiply - resultPrecision;
+            result.erase(result.length() - n, n);
+        } else if (resultPrecision > charactersAfterMultiply){
+            int n = resultPrecision - charactersAfterMultiply;
+            for (int i = 0; i < n; ++i) {
+                result += '0';
+            }
+        }
+    } else {
+        if (resultPrecision > 0){
+            result += '.';
+            for (int i = 0; i < resultPrecision; ++i) {
+                result += '0';
+            }
+        }
+    }
+
+    if (minus){
+        result = '-' + result;
+    }
+
+    return LongNumber(result, resultPrecision);
 }
