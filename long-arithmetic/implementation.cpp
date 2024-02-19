@@ -681,23 +681,46 @@ LongNumber LongNumber::operator*(const LongNumber& other) const {
 
     std::string result = multiply(firstNum, secondNum);
     
-    if (charactersAfterMultiply > 0){
-        result = insertDot(result, charactersAfterMultiply);
-        if (resultPrecision < charactersAfterMultiply){
-            int n = charactersAfterMultiply - resultPrecision;
-            result.erase(result.length() - n, n);
-        } else if (resultPrecision > charactersAfterMultiply){
-            int n = resultPrecision - charactersAfterMultiply;
-            for (int i = 0; i < n; ++i) {
-                result += '0';
+
+    int len = result.length();
+    if (len > charactersAfterMultiply){
+        if (charactersAfterMultiply > 0){
+            result = insertDot(result, charactersAfterMultiply);
+            if (resultPrecision < charactersAfterMultiply){
+                int n = charactersAfterMultiply - resultPrecision;
+                result.erase(len - n, n);
+            } else if (resultPrecision > charactersAfterMultiply){
+                int n = resultPrecision - charactersAfterMultiply;
+                for (int i = 0; i < n; ++i) {
+                    result += '0';
+                }
+            }
+        } else {
+            if (resultPrecision > 0){
+                result += '.';
+                for (int i = 0; i < resultPrecision; ++i) {
+                    result += '0';
+                }
             }
         }
     } else {
-        if (resultPrecision > 0){
-            result += '.';
-            for (int i = 0; i < resultPrecision; ++i) {
+        for (int i = 0; i < charactersAfterMultiply - len; ++i){
+            result = '0' + result;
+        }
+        int new_len = result.length();
+        if (resultPrecision > new_len){
+            for (int i = 0; i < resultPrecision - new_len; ++i){
                 result += '0';
             }
+        } else if (resultPrecision < new_len){
+            result.erase(resultPrecision, new_len - resultPrecision);
+        }
+
+        if (resultPrecision != 0){
+            result = '.' + result;
+            result = '0' + result;
+        } else {
+            result = '0' + result;
         }
     }
 
