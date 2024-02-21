@@ -1,9 +1,10 @@
 #include "LongNumber.h"
 #include <iomanip>
 #include <vector>
-#include <sstream>
 #include <algorithm>
 #include <regex>
+
+LongNumber operator ""_ln(const char *str, size_t size);
 
 std::string LongNumber::toString() const {
     return digits;
@@ -25,6 +26,7 @@ LongNumber::LongNumber(double number, int precision) : precision(precision) {
     ss << std::fixed << std::setprecision(precision) << number;
     digits = ss.str();
 }
+
 
 std::pair<std::string, std::string> splitNumber(const std::string& number) {
     std::istringstream iss(number);
@@ -192,7 +194,7 @@ std::vector<char> convertToDigitsVector(const std::string& numberString) {
     return digits;
 }
 
-void alignVectors_1(std::vector<char>& vec1, std::vector<char>& vec2) {
+void alignVectorsBegin(std::vector<char>& vec1, std::vector<char>& vec2) {
     int size1 = vec1.size();
     int size2 = vec2.size();
     
@@ -209,7 +211,7 @@ void alignVectors_1(std::vector<char>& vec1, std::vector<char>& vec2) {
     }
 }
 
-void alignVectors_2(std::vector<char>& vec1, std::vector<char>& vec2) {
+void alignVectorsEnd(std::vector<char>& vec1, std::vector<char>& vec2) {
     int size1 = vec1.size();
     int size2 = vec2.size();
     
@@ -260,7 +262,7 @@ LongNumber LongNumber::operator+(const LongNumber& other) const {
     std::vector<char> digits2 = convertToDigitsVector(num2Parts.second);
 
     // Добавляем нули в конец векторов, чтобы выровнять их по длине
-    alignVectors_2(digits1, digits2);
+    alignVectorsEnd(digits1, digits2);
 
     // Выполняем сложение
     int carry = 0;
@@ -276,7 +278,7 @@ LongNumber LongNumber::operator+(const LongNumber& other) const {
     digits2 = convertToDigitsVector(num2Parts.first);
     
     // Выравниваем векторы по длине
-    alignVectors_1(digits1, digits2);
+    alignVectorsBegin(digits1, digits2);
 
     // Складываем целые части
     std::vector<char> sumDigits;
@@ -374,7 +376,7 @@ LongNumber LongNumber::operator-(const LongNumber& other) const {
     std::vector<char> digits2 = convertToDigitsVector(num2Parts.second);
 
 
-    alignVectors_2(digits1, digits2);
+    alignVectorsEnd(digits1, digits2);
     
     // Вычитание в зависимости от размера целой части
     std::vector<char> diffDigits;
@@ -398,7 +400,7 @@ LongNumber LongNumber::operator-(const LongNumber& other) const {
         digits2 = convertToDigitsVector(num2Parts.first);
 
         // Добавляем нули в конец векторов, чтобы выровнять их по длине
-        alignVectors_1(digits1, digits2);
+        alignVectorsBegin(digits1, digits2);
     
         for (int i = digits1.size() - 1; i >= 0; --i) {
             int diff = digits1[i] - digits2[i] - borrow;
@@ -433,7 +435,7 @@ LongNumber LongNumber::operator-(const LongNumber& other) const {
         digits2 = convertToDigitsVector(num2Parts.first);
 
         // Добавляем нули в конец векторов, чтобы выровнять их по длине
-        alignVectors_1(digits1, digits2);
+        alignVectorsBegin(digits1, digits2);
     
         for (int i = digits2.size() - 1; i >= 0; --i) {
             int diff = digits2[i] - digits1[i] - borrow;
@@ -601,7 +603,7 @@ std::string removeLeadingZeros(std::string str){
     return str;
 }
 
-std::string multiply(std::string A, std::string B){
+std::string Karatsuba(std::string A, std::string B){
     if (A.length() > B.length()){
         swap(A, B);
     }
@@ -631,14 +633,11 @@ std::string multiply(std::string A, std::string B){
         Br += B[n1 / 2 + i];
     }
  
-    std::string p = multiply(Al, Bl);
+    std::string p = Karatsuba(Al, Bl);
  
-    std::string q = multiply(Ar, Br);
+    std::string q = Karatsuba(Ar, Br);
  
-    std::string r = findDiff(
-        multiply(findSum(Al, Ar),
-                 findSum(Bl, Br)),
-        findSum(p, q));
+    std::string r = findDiff(Karatsuba(findSum(Al, Ar),findSum(Bl, Br)),findSum(p, q));
 
     for (int i = 0; i < n1; ++i){
         p = p + "0";
@@ -662,6 +661,9 @@ std::string insertDot(std::string str, int n) {
 }
 
 LongNumber LongNumber::operator*(const LongNumber& other) const {
+    if ((*this) == 0 || other == 0){
+        return LongNumber("0", 0); 
+    }
     // Определяем знак числа
     bool minus = false;
     if (digits[0] == '-' || other.digits[0] == '-'){
@@ -679,8 +681,8 @@ LongNumber LongNumber::operator*(const LongNumber& other) const {
     std::string firstNum = deletePointer(digits);
     std::string secondNum = deletePointer(other.digits);
 
-    std::string result = multiply(firstNum, secondNum);
-    
+    std::string result = Karatsuba(firstNum, secondNum);
+     
 
     int len = result.length();
     if (len > charactersAfterMultiply){
@@ -729,4 +731,150 @@ LongNumber LongNumber::operator*(const LongNumber& other) const {
     }
 
     return LongNumber(result, resultPrecision);
+}
+
+LongNumber operator ""_ln(const char *str, size_t size){
+    return LongNumber(str, countCharactersAfterDot(str));
+}
+
+std::string LongNumber::division(std::string strA, std::string strB) const{
+    if(strB == "0")
+        throw("Arithmetic Error: Division By 0");
+    if(LongNumber(strA, 0) < LongNumber(strB, 0))
+        return "0";
+    if(LongNumber(strA, 0) == LongNumber(strB, 0)){
+        return "1";
+    }
+    std::reverse(strA.begin(), strA.end());
+    
+    LongNumber a(strA, 0);
+    LongNumber b(strB, 0);
+
+    int i, lgcat = 0, cc;
+    int n = strA.length(), m = strB.length();
+    std::vector<int> cat(n, 0);
+    LongNumber t("0", 0);
+    LongNumber ten("10", 0);
+    for (i = n - 1; t * ten + LongNumber(std::string(1, a.digits[i]), 0) < b; i--){
+        t = t * ten;
+        t = t + LongNumber(std::string(1, a.digits[i]), 0);
+    }
+
+    for (; i >= 0; i--){
+        t = t * ten + LongNumber(std::string(1, a.digits[i]), 0);
+        for (cc = 9; LongNumber(cc, 0) * b > t; cc--);
+        t = t - LongNumber(cc, 0) * b;
+        cat[lgcat++] = cc;
+    }
+
+    std::string resultStr;
+    for (int i = 0; i < lgcat; i++) {
+        resultStr += std::to_string(cat[i]);
+    }
+
+    return resultStr;
+}
+
+
+// Функция для подготовки числа к делению
+std::pair<std::string, std::string> prepareNumbers(std::string num1, int precision1, std::string num2, int precision2) {
+    std::string preparedNum1 = deletePointer(num1);
+    std::string preparedNum2 = deletePointer(num2);
+    preparedNum1 = removeLeadingZeros(preparedNum1);
+    preparedNum2 = removeLeadingZeros(preparedNum2);
+
+    if (precision1 > precision2){
+        for (int i = 0; precision1 - precision2 > i; ++i){
+            preparedNum2 += "0";
+        }
+    } else {
+        for (int i = 0; precision2 - precision1 > i; ++i){
+            preparedNum1 += "0";
+        }
+    }
+    return std::make_pair(preparedNum1, preparedNum2);
+}
+
+LongNumber LongNumber::operator/(const LongNumber& other) const{
+    // Определяем знак числа
+    bool minus = false;
+    if (digits[0] == '-' || other.digits[0] == '-'){
+        minus = (digits[0] == '-' && other.digits[0] == '-') ? false : true;
+    }
+
+    // Считаем кол-во цифр в дробной части
+    int charactersAfterFirst = countCharactersAfterDot(digits);
+    int charactersAfterSecond = countCharactersAfterDot(other.digits);
+    int charactersAfterMultiply = charactersAfterFirst + charactersAfterSecond;
+
+    // Вычисляем точность для результата как максимальную из точностей операндов
+    int resultPrecision = std::max(precision, other.precision);
+    // Готовим числа к делению
+    std::pair<std::string, std::string> Num = 
+    prepareNumbers(digits, charactersAfterFirst, other.digits, charactersAfterSecond);
+
+    std::string intDiv = division(Num.first, Num.second);
+    std::string fracDiv;
+    
+    LongNumber multiplyResSecond = LongNumber(intDiv, 0) * LongNumber(Num.second, 0);
+    if (multiplyResSecond == LongNumber(Num.first)){
+        return LongNumber(intDiv, 0);
+    } else {
+        if (resultPrecision > 0){
+            std::string remainder = (LongNumber(Num.first, 0) - multiplyResSecond).toString() + "0";
+            for (int i = 0; i < resultPrecision; ++i){
+                std::string remainderDiv = division(remainder, Num.second);
+                fracDiv += remainderDiv;
+                remainder = (LongNumber(remainder, 0) - LongNumber(remainderDiv, 0) 
+                * LongNumber(Num.second, 0)).toString() + "0";
+            }
+        }
+    }
+
+    if (fracDiv.size() > 0){
+        if (minus){
+            return LongNumber("-" + intDiv + "." + fracDiv, resultPrecision);
+        } else {
+            return LongNumber(intDiv + "." + fracDiv, resultPrecision);
+        }
+    } else {
+        if (minus) {
+            return LongNumber("-" + intDiv, resultPrecision);
+        } else {
+            return LongNumber(intDiv, resultPrecision);
+        }
+    }
+}
+
+LongNumber LongNumber::pi(int precision){
+    LongNumber result("0", precision + 2);
+    if (precision > 0){
+        for (int k = 0; k < precision; ++k){
+            LongNumber k_8 = LongNumber(std::to_string(k), precision + 2) * LongNumber("8", precision + 2);
+
+            LongNumber fraction1 = LongNumber("-2", precision + 2) / (k_8 + LongNumber("4", precision + 2));
+            LongNumber fraction2 = LongNumber("-1", precision + 2) / (k_8 + LongNumber("5", precision + 2));
+            LongNumber fraction3 = LongNumber("-1", precision + 2) / (k_8 + LongNumber("6", precision + 2));
+            LongNumber fraction4 = LongNumber("4", precision + 2) / (k_8 + LongNumber("1", precision + 2));
+
+            LongNumber k_16;
+            if (k == 0){
+                k_16 = LongNumber("1", precision + 2); 
+            } else {
+                k_16 = LongNumber("16", precision + 2);
+            }
+
+            for (int i = 1; i < k; ++i){
+                k_16 = k_16 * LongNumber("16", precision + 2);
+            }
+
+            LongNumber numerator = fraction1 + fraction2 + fraction3 + fraction4;
+            
+            result = result + numerator / k_16;
+        }
+        result.digits = result.digits.substr(0, result.digits.size() - 2);
+        return result;
+    } else {
+        return "3"_ln;
+    }
 }

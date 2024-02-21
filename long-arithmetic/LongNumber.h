@@ -7,7 +7,7 @@ class LongNumber {
 private:
     std::string digits;
     int precision;
-
+    std::string division(std::string strA, std::string strB) const;
 public:
     // Конструкторы
     LongNumber();
@@ -26,8 +26,8 @@ public:
     bool operator<(const LongNumber& other) const;
     bool operator>(const LongNumber& other) const;
     
-    // Создание из литерала с плавающей точкой
-    static LongNumber fromDouble(double number, int precision = 2);
+    // Вычисление числа пи
+    static LongNumber pi(int precision);
     
     // Преобразование длинного числа в строку
     std::string toString() const;
@@ -35,5 +35,4 @@ public:
     // Метод для установки точности
     void setPrecision(int precision);
     
-    // Другие методы
 };
