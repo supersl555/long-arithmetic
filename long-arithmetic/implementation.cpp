@@ -846,6 +846,7 @@ LongNumber LongNumber::operator/(const LongNumber& other) const{
     }
 }
 
+// формула Бэйли — Боруэйна — Плаффа
 LongNumber LongNumber::pi(int precision){
     LongNumber result("0", precision + 2);
     if (precision > 0){

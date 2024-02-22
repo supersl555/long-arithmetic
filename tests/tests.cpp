@@ -16,8 +16,8 @@ TEST(BlockSum, Sum){
     LongNumber num3("9999.9", 0);
     LongNumber num4("11.1", 0);
 
-    std::cout << "Num1: " << num1.toString() << std::endl;
-    std::cout << "Num2: " << num2.toString() << std::endl;
+    std::cout << "Num3: " << num3.toString() << std::endl;
+    std::cout << "Num4: " << num4.toString() << std::endl;
 
     std::cout << "Expect: 10011" << std::endl;
     LongNumber resSum1 = num3 + num4;
@@ -40,6 +40,9 @@ TEST(BlockSub, Sub){
     LongNumber num3("1.1", 0);
     LongNumber num4("0.3", 1);
 
+    std::cout << "Num3: " << num3.toString() << std::endl;
+    std::cout << "Num4: " << num4.toString() << std::endl;
+
     std::cout << "Expect: 0.8" << std::endl;
     LongNumber resSub1 = num3 - num4;
 
@@ -61,8 +64,8 @@ TEST(BlockMul, Mul){
     LongNumber num3("-0", 3);
     LongNumber num4("0", 4);
 
-    std::cout << "Num3: " << num1.toString() << std::endl;
-    std::cout << "Num4: " << num2.toString() << std::endl;
+    std::cout << "Num3: " << num3.toString() << std::endl;
+    std::cout << "Num4: " << num4.toString() << std::endl;
 
     std::cout << "Expect: 0" << std::endl;
     LongNumber resMul1 = num3 * num4;
@@ -84,6 +87,9 @@ TEST(BlockDiv, Div){
 
     LongNumber num3("-100003204389348923.134", 3);
     LongNumber num4("12345", 4);
+
+    std::cout << "Num3: " << num3.toString() << std::endl;
+    std::cout << "Num4: " << num4.toString() << std::endl;
 
     std::cout << "Expect: -8100705094317.4502" << std::endl;
     LongNumber resDiv1 = num3 / num4;
