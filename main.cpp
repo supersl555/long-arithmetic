@@ -8,6 +8,7 @@ int main(){
 
     double totalTime = static_cast<double>(endTime - startTime) / CLOCKS_PER_SEC;
 
+    std::cout << "Pi: " << Pi.toString() << std::endl;
     std::cout << "Time passed: " << totalTime << " (sec) ";
     return 0;
 }
